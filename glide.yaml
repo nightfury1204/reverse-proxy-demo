@@ -1,0 +1,10 @@
+package: github.com/nightfury1204/reverse-proxy-demo
+import:
+- package: github.com/prometheus/common
+  subpackages:
+    - config
+    - expfmt
+    - model
+  version: v0.2.0
+- package: github.com/prometheus/prometheus
+  version: v2.8.1
