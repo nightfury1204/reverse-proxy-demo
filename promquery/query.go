@@ -2,9 +2,10 @@ package promquery
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/prometheus/common/model"
 	"github.com/prometheus/prometheus/pkg/labels"
-	"strings"
 )
 
 // It will add label matchers to every metrics
@@ -39,9 +40,9 @@ func AddLabelMatchersToQuery(q string, labels []labels.Label) string {
 					}
 				} else { // http
 					// copy all 'q' char from 'qPos+1' to 'itm.Pos + len(itm.val)'
-					en := int(itm.pos)+len(itm.val)
-					newQ = newQ + q[qPos+1:en] + fmt.Sprintf("{%s}",extraLbs)
-					qPos = en-1
+					en := int(itm.pos) + len(itm.val)
+					newQ = newQ + q[qPos+1:en] + fmt.Sprintf("{%s}", extraLbs)
+					qPos = en - 1
 				}
 			}
 		}
@@ -81,7 +82,7 @@ func AddLabelMatchersToQuery(q string, labels []labels.Label) string {
 func LabelsToString(labels []labels.Label) string {
 	lbs := []string{}
 	for _, l := range labels {
-		lbs = append(lbs, fmt.Sprintf(`%s="%s"`,l.Name, l.Value))
+		lbs = append(lbs, fmt.Sprintf(`%s="%s"`, l.Name, l.Value))
 	}
 	return strings.Join(lbs, ",")
 }

@@ -3,18 +3,20 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/nightfury1204/reverse-proxy-demo/promquery"
-	"github.com/pkg/errors"
-	"github.com/prometheus/prometheus/pkg/labels"
 	"log"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
 	"strings"
+
+	"github.com/nightfury1204/reverse-proxy-demo/promquery"
+	"github.com/pkg/errors"
+	"github.com/prometheus/prometheus/pkg/labels"
 )
 
 var (
 	tokenMap map[string]string
+	userCred map[string]string
 )
 
 const (
@@ -31,7 +33,27 @@ func loadToken() {
 	}
 }
 
+func loadUserCred() {
+	userCred = map[string]string{
+		"1": "1111",
+		"2": "2222",
+		"3": "3333",
+		"4": "4444",
+		"5": "5555",
+	}
+}
+
+// basic auth
+// bearer token
 func authenticate(r *http.Request) (string, error) {
+	user, pass, ok := r.BasicAuth()
+	if ok {
+		if p, ok := userCred[user]; ok && p == pass {
+			return user, nil
+		}
+		return "", errors.New("invalid username/password")
+	}
+
 	token, err := parseBearerToken(r)
 	if err != nil {
 		return "", err
@@ -58,23 +80,26 @@ func parseBearerToken(r *http.Request) (string, error) {
 	return authHeader[len(BEARER_SCHEMA):], nil
 }
 
-func getLables(id string) []labels.Label{
+func getLables(id string) []labels.Label {
 	return []labels.Label{
 		{
-			Name:"client-id",
+			Name:  "client_id",
 			Value: id,
 		},
 	}
 }
 
 type Server struct {
-	port string
+	port            string
 	reverseProxyUrl string
-	proxy *httputil.ReverseProxy
-	url  *url.URL
+	proxy           *httputil.ReverseProxy
+	url             *url.URL
 }
 
 func (s *Server) Bootstrap() error {
+	loadToken()
+	loadUserCred()
+
 	u, err := url.Parse(s.reverseProxyUrl)
 	if err != nil {
 		return errors.Wrap(err, "failed to parse reverse proxy url")
@@ -85,6 +110,7 @@ func (s *Server) Bootstrap() error {
 	s.proxy = httputil.NewSingleHostReverseProxy(u)
 	return nil
 }
+
 // Serve a reverse proxy
 func (s *Server) serveReverseProxy(w http.ResponseWriter, r *http.Request) {
 	// Update the headers to allow for SSL redirection
@@ -92,12 +118,14 @@ func (s *Server) serveReverseProxy(w http.ResponseWriter, r *http.Request) {
 	r.URL.Scheme = s.url.Scheme
 	r.Header.Set("X-Forwarded-Host", r.Header.Get("Host"))
 	r.Host = s.url.Host
+	log.Println("query: ", r.URL.Query().Get("query"))
 
+	// wrapper := filter.NewResponseWriterWrapper(w)
 	// Note that ServeHttp is non blocking and uses a go routine under the hood
 	s.proxy.ServeHTTP(w, r)
 }
 
-func (s *Server) handleRequestAndRedirect(w http.ResponseWriter, r *http.Request)  {
+func (s *Server) handleRequestAndRedirect(w http.ResponseWriter, r *http.Request) {
 	id, err := authenticate(r)
 	if err != nil {
 		w.WriteHeader(http.StatusForbidden)
@@ -109,28 +137,34 @@ func (s *Server) handleRequestAndRedirect(w http.ResponseWriter, r *http.Request
 	lbs := getLables(id)
 	q := r.URL.Query().Get("query")
 	if len(q) > 0 {
+		log.Printf("From client %s: got query: %s\n", id, q)
+
 		q = promquery.AddLabelMatchersToQuery(q, lbs)
-		r.URL.Query().Set("query", q)
+		qParms := r.URL.Query()
+		qParms.Set("query", q)
+		r.URL.RawQuery = qParms.Encode()
+
+		log.Printf("From client %s: serving query: %s\n", id, r.URL.Query().Get("query"))
 	}
 	s.serveReverseProxy(w, r)
 }
 
-
 func main() {
 	srv := &Server{}
 
-	flag.StringVar(&srv.port, "port", "10210", "port number")
+	flag.StringVar(&srv.port, "port", "8080", "port number")
 	flag.StringVar(&srv.reverseProxyUrl, "reverse-proxy-url", "http://127.0.0.1:8888", "reverse proxy url")
-	flag.CommandLine.Parse([]string{})
+	flag.Parse()
 
 	err := srv.Bootstrap()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	log.Print("running reverse proxy server....")
+	log.Printf("running reverse proxy server in port %s....\n", srv.port)
+	log.Println("redirect url: ", srv.reverseProxyUrl)
 	http.HandleFunc("/", srv.handleRequestAndRedirect)
-	if err := http.ListenAndServe(fmt.Sprintf("0.0.0.0:%s",srv.port), nil); err != nil {
+	if err := http.ListenAndServe(fmt.Sprintf("0.0.0.0:%s", srv.port), nil); err != nil {
 		log.Fatal(err)
 	}
 }

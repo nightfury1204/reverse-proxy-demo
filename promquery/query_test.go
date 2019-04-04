@@ -2,9 +2,10 @@ package promquery
 
 import (
 	"fmt"
+	"testing"
+
 	"github.com/prometheus/prometheus/pkg/labels"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestAddLabelMatchers(t *testing.T) {
@@ -25,53 +26,53 @@ func TestAddLabelMatchers(t *testing.T) {
 		expectQ  string
 	}{
 		{
-			q:"sum ( http )",
-			expectQ: `sum ( http{client-id="1234",cluster-id="qwert"} )`,
+			q:        "sum ( http )",
+			expectQ:  `sum ( http{client-id="1234",cluster-id="qwert"} )`,
 			extraLbs: extraLbs,
 		},
 		{
-			q: `sum(sort_desc(sum_over_time(ALERTS{alertstate="firing"}[24h]))) by (alertname)`,
-			expectQ: `sum(sort_desc(sum_over_time(ALERTS{client-id="1234",cluster-id="qwert",alertstate="firing"}[24h]))) by (alertname)`,
+			q:        `sum(sort_desc(sum_over_time(ALERTS{alertstate="firing"}[24h]))) by (alertname)`,
+			expectQ:  `sum(sort_desc(sum_over_time(ALERTS{client-id="1234",cluster-id="qwert",alertstate="firing"}[24h]))) by (alertname)`,
 			extraLbs: extraLbs,
 		},
 		{
-			q: `delta(cpu_temp_celsius{host="zeus"}[2h])`,
-			expectQ: `delta(cpu_temp_celsius{client-id="1234",cluster-id="qwert",host="zeus"}[2h])`,
+			q:        `delta(cpu_temp_celsius{host="zeus"}[2h])`,
+			expectQ:  `delta(cpu_temp_celsius{client-id="1234",cluster-id="qwert",host="zeus"}[2h])`,
 			extraLbs: extraLbs,
 		},
 		{
-			q: `  cpu_temp_celsius  `,
-			expectQ:`  cpu_temp_celsius{client-id="1234",cluster-id="qwert"}  `,
+			q:        `  cpu_temp_celsius  `,
+			expectQ:  `  cpu_temp_celsius{client-id="1234",cluster-id="qwert"}  `,
 			extraLbs: extraLbs,
 		},
 		{
-			q: `histogram_quantile(0.9, sum(rate(http_request_duration_seconds_bucket[10m])) by (job, le))`,
-			expectQ: `histogram_quantile(0.9, sum(rate(http_request_duration_seconds_bucket{client-id="1234",cluster-id="qwert"}[10m])) by (job, le))`,
+			q:        `histogram_quantile(0.9, sum(rate(http_request_duration_seconds_bucket[10m])) by (job, le))`,
+			expectQ:  `histogram_quantile(0.9, sum(rate(http_request_duration_seconds_bucket{client-id="1234",cluster-id="qwert"}[10m])) by (job, le))`,
 			extraLbs: extraLbs,
 		},
 		{
-			q: `sum(histogram_quantile(0.9, sum(rate(http_request_duration_seconds_bucket[10m])) by (job, le))) == http`,
-			expectQ: `sum(histogram_quantile(0.9, sum(rate(http_request_duration_seconds_bucket{client-id="1234",cluster-id="qwert"}[10m])) by (job, le))) == http{client-id="1234",cluster-id="qwert"}`,
+			q:        `sum(histogram_quantile(0.9, sum(rate(http_request_duration_seconds_bucket[10m])) by (job, le))) == http`,
+			expectQ:  `sum(histogram_quantile(0.9, sum(rate(http_request_duration_seconds_bucket{client-id="1234",cluster-id="qwert"}[10m])) by (job, le))) == http{client-id="1234",cluster-id="qwert"}`,
 			extraLbs: extraLbs,
 		},
 		{
-			q: `http{job="{}"} by (le)`,
-			expectQ: `http{client-id="1234",cluster-id="qwert",job="{}"} by (le)`,
+			q:        `http{job="{}"} by (le)`,
+			expectQ:  `http{client-id="1234",cluster-id="qwert",job="{}"} by (le)`,
 			extraLbs: extraLbs,
 		},
 		{
-			q: `label_join(up{job="api-server",src1="a",src2="b",src3="c"}, "foo", ",", "src1", "src2", "src3")`,
-			expectQ: `label_join(up{client-id="1234",cluster-id="qwert",job="api-server",src1="a",src2="b",src3="c"}, "foo", ",", "src1", "src2", "src3")`,
+			q:        `label_join(up{job="api-server",src1="a",src2="b",src3="c"}, "foo", ",", "src1", "src2", "src3")`,
+			expectQ:  `label_join(up{client-id="1234",cluster-id="qwert",job="api-server",src1="a",src2="b",src3="c"}, "foo", ",", "src1", "src2", "src3")`,
 			extraLbs: extraLbs,
 		},
 		{
-			q: `label_join(up, "foo", ",", "src1", "src2", "src3")`,
-			expectQ: `label_join(up{client-id="1234",cluster-id="qwert"}, "foo", ",", "src1", "src2", "src3")`,
+			q:        `label_join(up, "foo", ",", "src1", "src2", "src3")`,
+			expectQ:  `label_join(up{client-id="1234",cluster-id="qwert"}, "foo", ",", "src1", "src2", "src3")`,
 			extraLbs: extraLbs,
 		},
 		{
-			q: ` http_requests_total{status!~"4.."} `,
-			expectQ: ` http_requests_total{client-id="1234",cluster-id="qwert",status!~"4.."} `,
+			q:        ` http_requests_total{status!~"4.."} `,
+			expectQ:  ` http_requests_total{client-id="1234",cluster-id="qwert",status!~"4.."} `,
 			extraLbs: extraLbs,
 		},
 		{
@@ -85,64 +86,63 @@ func TestAddLabelMatchers(t *testing.T) {
 			extraLbs: extraLbs,
 		},
 		{
-			q: ` topk(3, sum(rate(instance_cpu_time_ns[5m])) by (app, proc)) `,
-			expectQ: ` topk(3, sum(rate(instance_cpu_time_ns{client-id="1234",cluster-id="qwert"}[5m])) by (app, proc)) `,
+			q:        ` topk(3, sum(rate(instance_cpu_time_ns[5m])) by (app, proc)) `,
+			expectQ:  ` topk(3, sum(rate(instance_cpu_time_ns{client-id="1234",cluster-id="qwert"}[5m])) by (app, proc)) `,
 			extraLbs: extraLbs,
 		},
 		{
-			q: ` count(instance_cpu_time_ns) by (app) `,
-			expectQ: ` count(instance_cpu_time_ns{client-id="1234",cluster-id="qwert"}) by (app) `,
+			q:        ` count(instance_cpu_time_ns) by (app) `,
+			expectQ:  ` count(instance_cpu_time_ns{client-id="1234",cluster-id="qwert"}) by (app) `,
 			extraLbs: extraLbs,
 		},
 		{
-			q: ` sum by (status_code) (rate(http_requests_total[5m]))`,
-			expectQ: ` sum by (status_code) (rate(http_requests_total{client-id="1234",cluster-id="qwert"}[5m]))`,
+			q:        ` sum by (status_code) (rate(http_requests_total[5m]))`,
+			expectQ:  ` sum by (status_code) (rate(http_requests_total{client-id="1234",cluster-id="qwert"}[5m]))`,
 			extraLbs: extraLbs,
 		},
 		{
-			q: ` sum(rate(http_requests_total[5m] offset 5m))`,
-			expectQ: ` sum(rate(http_requests_total{client-id="1234",cluster-id="qwert"}[5m] offset 5m))`,
+			q:        ` sum(rate(http_requests_total[5m] offset 5m))`,
+			expectQ:  ` sum(rate(http_requests_total{client-id="1234",cluster-id="qwert"}[5m] offset 5m))`,
 			extraLbs: extraLbs,
 		},
 		{
-			q: ` rate(http_requests_total{status_code=~"5.*"}[5m]) > .1 * rate(http_requests_total[5m]) `,
-			expectQ: ` rate(http_requests_total{client-id="1234",cluster-id="qwert",status_code=~"5.*"}[5m]) > .1 * rate(http_requests_total{client-id="1234",cluster-id="qwert"}[5m]) `,
+			q:        ` rate(http_requests_total{status_code=~"5.*"}[5m]) > .1 * rate(http_requests_total[5m]) `,
+			expectQ:  ` rate(http_requests_total{client-id="1234",cluster-id="qwert",status_code=~"5.*"}[5m]) > .1 * rate(http_requests_total{client-id="1234",cluster-id="qwert"}[5m]) `,
 			extraLbs: extraLbs,
 		},
 		{
-			q: ` 100 * (1 - avg by(instance)(irate(node_cpu{mode='idle'}[5m])))`,
-			expectQ: ` 100 * (1 - avg by(instance)(irate(node_cpu{client-id="1234",cluster-id="qwert",mode='idle'}[5m])))`,
+			q:        ` 100 * (1 - avg by(instance)(irate(node_cpu{mode='idle'}[5m])))`,
+			expectQ:  ` 100 * (1 - avg by(instance)(irate(node_cpu{client-id="1234",cluster-id="qwert",mode='idle'}[5m])))`,
 			extraLbs: extraLbs,
 		},
 		{
-			q: ` node_memory_Active / on (instance) node_memory_MemTotal`,
-			expectQ: ` node_memory_Active{client-id="1234",cluster-id="qwert"} / on (instance) node_memory_MemTotal{client-id="1234",cluster-id="qwert"}`,
+			q:        ` node_memory_Active / on (instance) node_memory_MemTotal`,
+			expectQ:  ` node_memory_Active{client-id="1234",cluster-id="qwert"} / on (instance) node_memory_MemTotal{client-id="1234",cluster-id="qwert"}`,
 			extraLbs: extraLbs,
 		},
 		{
-			q: ` up > bool 0 `,
-			expectQ: ` up{client-id="1234",cluster-id="qwert"} > bool 0 `,
+			q:        ` up > bool 0 `,
+			expectQ:  ` up{client-id="1234",cluster-id="qwert"} > bool 0 `,
 			extraLbs: extraLbs,
 		},
 		{
-			q: ` sum(http_requests_total) without (instance) `,
-			expectQ: ` sum(http_requests_total{client-id="1234",cluster-id="qwert"}) without (instance) `,
+			q:        ` sum(http_requests_total) without (instance) `,
+			expectQ:  ` sum(http_requests_total{client-id="1234",cluster-id="qwert"}) without (instance) `,
 			extraLbs: extraLbs,
 		},
 		{
-			q: ` count_values("version", build_version) `,
-			expectQ: ` count_values("version", build_version{client-id="1234",cluster-id="qwert"}) `,
+			q:        ` count_values("version", build_version) `,
+			expectQ:  ` count_values("version", build_version{client-id="1234",cluster-id="qwert"}) `,
 			extraLbs: extraLbs,
 		},
 		{
-			q: ` {__name__=~"job:.*"}  `,
-			expectQ: ` {client-id="1234",cluster-id="qwert",__name__=~"job:.*"}  `,
+			q:        ` {__name__=~"job:.*"}  `,
+			expectQ:  ` {client-id="1234",cluster-id="qwert",__name__=~"job:.*"}  `,
 			extraLbs: extraLbs,
 		},
-
 	}
 
-	for i:= 0; i < len(queries); i++ {
+	for i := 0; i < len(queries); i++ {
 		newQ := AddLabelMatchersToQuery(queries[i].q, queries[i].extraLbs)
 		assert.Equal(t, queries[i].expectQ, newQ)
 	}
@@ -150,16 +150,16 @@ func TestAddLabelMatchers(t *testing.T) {
 
 func TestParse(t *testing.T) {
 	/*
-	- "sum ( http )"
-	- `sum(sort_desc(sum_over_time(ALERTS{alertstate="firing"}[24h]))) by (alertname)`
-	-
+		- "sum ( http )"
+		- `sum(sort_desc(sum_over_time(ALERTS{alertstate="firing"}[24h]))) by (alertname)`
+		-
 	*/
 	queries := []struct {
-		q string
+		q       string
 		expectM []string
 	}{
 		{
-			q:"sum ( http )",
+			q: "sum ( http )",
 			expectM: []string{
 				"http",
 			},
@@ -173,53 +173,50 @@ func TestParse(t *testing.T) {
 		{
 			q: `delta(cpu_temp_celsius{host="zeus"}[2h])`,
 			expectM: []string{
-			 "cpu_temp_celsius",
+				"cpu_temp_celsius",
 			},
-
 		},
 		{
 			q: `   cpu_temp_celsius  `,
 			expectM: []string{
-			 "cpu_temp_celsius",
+				"cpu_temp_celsius",
 			},
-
 		},
 		{
 			q: `   cpu_temp_celsius  `,
 			expectM: []string{
-			 "cpu_temp_celsius",
+				"cpu_temp_celsius",
 			},
-
 		},
 		{
 			q: `histogram_quantile(0.9, sum(rate(http_request_duration_seconds_bucket[10m])) by (job, le))`,
 			expectM: []string{
-			 "http_request_duration_seconds_bucket",
+				"http_request_duration_seconds_bucket",
 			},
 		},
 		{
 			q: `sum(histogram_quantile(0.9, sum(rate(http_request_duration_seconds_bucket[10m])) by (job, le))) == http`,
 			expectM: []string{
-			 "http_request_duration_seconds_bucket",
-			 "http",
+				"http_request_duration_seconds_bucket",
+				"http",
 			},
 		},
 		{
 			q: `http{job="{}"} by (le)`,
 			expectM: []string{
-			 "http",
+				"http",
 			},
 		},
 		{
 			q: `label_join(up{job="api-server",src1="a",src2="b",src3="c"}, "foo", ",", "src1", "src2", "src3")`,
 			expectM: []string{
-			 "up",
+				"up",
 			},
 		},
 		{
 			q: `label_join(up, "foo", ",", "src1", "src2", "src3")`,
 			expectM: []string{
-			 "up",
+				"up",
 			},
 		},
 		{
@@ -305,10 +302,9 @@ func TestParse(t *testing.T) {
 				"",
 			},
 		},
-
 	}
 
-	for i:= 0; i < len(queries)-1; i++ {
+	for i := 0; i < len(queries)-1; i++ {
 		m, err := parseMetrics(queries[i].q)
 		if assert.Nil(t, err) {
 			assert.Equal(t, queries[i].expectM, m)
