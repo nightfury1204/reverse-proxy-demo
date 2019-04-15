@@ -283,7 +283,6 @@ func (p *parser) recover(errp *error) {
 	p.lex.close()
 }
 
-
 // number parses a number.
 func (p *parser) number(val string) float64 {
 	n, err := strconv.ParseInt(val, 0, 64)
